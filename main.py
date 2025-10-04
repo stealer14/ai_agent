@@ -3,6 +3,7 @@ import sys
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from functions.get_files_info import get_files_info
 
 #Reading .env file (if present) and load the variables in the environment
 load_dotenv()
@@ -39,7 +40,7 @@ def main():
             types.Content(role="user", parts=[types.Part(text=prompt)]),
         ]
         response = client.models.generate_content(model=model_no, contents=messages)
-    
+
         if response:
             #Always print the mode's answer 
             #print(response.text)
