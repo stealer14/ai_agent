@@ -1,6 +1,6 @@
 import os
 
-def get_files_info(working_directory, directory="."):
+def get_files_info(working_directory, directory = "."):
     try:
         # Compute absolute pahts safely
         abs_working_dir = os.path.abspath(working_directory)
