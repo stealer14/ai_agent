@@ -1,4 +1,5 @@
 import os
+from google.genai import types
 
 def write_file(working_directory, file_path, content):
     # Check If the file_path is outside the working_directory, return a string with an error
@@ -21,3 +22,21 @@ def write_file(working_directory, file_path, content):
         return f'Successfully wrote to "{file_path}" ({len(content)} characters written)'
     except Exception as e:
         return f"Failed to write to file: {file_path}, {e}"
+    
+schema_write_files = types.FunctionDeclaration(
+    name="write_files",
+    description="Overwrites, or writes to a new file or writes to a new file if it does not exist (and creates required parent dirs safely)",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="The path to the file to write.",
+            ),
+            "contents": types.Schema(
+                type=types.Type.STRING,
+                description="The contents to write to the file as a String.",
+            )
+        },
+    ),
+)

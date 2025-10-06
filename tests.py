@@ -31,7 +31,7 @@ def main():
     print(get_file_content(working_dir, "/bin/cat"))
     '''
 
-    #Thrid round of testings with writing content to file
+    #Third round of testings with writing content to file
     '''
     print(write_file(working_dir, "lorem.txt", "wait, this isn't lorem ipsum"))
     print(write_file(working_dir, "pkg/morelorem.txt", "lorem ipsum dolor sit amet"))
