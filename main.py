@@ -7,7 +7,7 @@ from functions.get_files_info import schema_get_files_info
 from functions.get_file_content import schema_get_file_content
 from functions.write_files import schema_write_files
 from functions.run_python_file import schema_run_python_file
-
+from functions.call_function import call_function
 
 def main():
     #Reading .env file (if present) and load the variables in the environment
@@ -81,9 +81,24 @@ def main():
         # Check for function calls or text in response
         if response.candidates[0].content.parts:
             for part in response.candidates[0].content.parts:
-                if hasattr(part, 'function_call') and part.function_call:
+                if hasattr(part, "function_call") and part.function_call:
                     function_call_part = part.function_call
-                    print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+                    function_call_result = call_function(function_call_part, verbose=verbose_mode)
+
+                    if not function_call_result.parts or not hasattr(function_call_result.parts[0], "function_response"):
+                        raise Exception("Function call did not return a valid response")
+
+                    result_data = function_call_result.parts[0].function_response.response
+
+                    # Extract the actual text result
+                    if isinstance(result_data, dict):
+                        output = result_data.get("result", "")
+                    else:
+                        output = str(result_data)
+
+                    # Always print the result (for Boot.dev grader)
+                    print(output)
+
                 elif hasattr(part, 'text') and part.text:
                     if verbose_mode:
                         print("******** Reporting.... ***********")

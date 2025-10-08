@@ -1,7 +1,7 @@
 import os
 from google.genai import types
 
-def write_file(working_directory, file_path, content):
+def write_files(working_directory, file_path, content):
     # Check If the file_path is outside the working_directory, return a string with an error
     abs_working_dir = os.path.abspath(working_directory)
     abs_file_path = os.path.abspath(os.path.join(working_directory, file_path))
@@ -33,9 +33,9 @@ schema_write_files = types.FunctionDeclaration(
                 type=types.Type.STRING,
                 description="The path to the file to write.",
             ),
-            "contents": types.Schema(
+            "content": types.Schema(
                 type=types.Type.STRING,
-                description="The contents to write to the file as a String.",
+                description="The content to write to the file as a String.",
             )
         },
     ),
