@@ -47,59 +47,78 @@ def main():
     #Program starts running here.
     print("Hello from Nestor ai-agent! project")
 
-    # Previous state: direct prompt string used in generate_content
-    # response = client.models.generate_content(model=model_no, contents=[prompt])
+    # Initialize conversation
+    messages = [types.Content(role="user", parts=[types.Part(text=prompt)])]
 
-    # New state: using types.Content and types.Part for messages
-
-    try:       
-        messages = [
-            types.Content(role="user", parts=[types.Part(text=prompt)]),
+    available_functions = types.Tool(
+        function_declarations=[
+            schema_get_files_info,
+            schema_get_file_content,
+            schema_write_files,
+            schema_run_python_file,
         ]
+    )
 
-        available_functions = types.Tool(
-            function_declarations=[
-                schema_get_files_info,
-                schema_get_file_content,
-                schema_write_files,
-                schema_run_python_file,
-            ]
-        )
-        
-        config=types.GenerateContentConfig(
-            tools=[available_functions], 
-            system_instruction=system_prompt
-        )       
+    config = types.GenerateContentConfig(
+        tools=[available_functions],
+        system_instruction=system_prompt,
+    )
 
-        response = client.models.generate_content(
-            model=model_no, 
-            contents=messages,
-            config = config,
-        )
+    max_iters = 20
+    for i in range(max_iters):
+        try:
+            # Model call with full history
+            response = client.models.generate_content(
+                model=model_no,
+                contents=messages,
+                config=config,
+            )
 
-        
-        # Check for function calls or text in response
-        if response.candidates[0].content.parts:
-            for part in response.candidates[0].content.parts:
+            # Add model outputs to the conversation
+            for candidate in response.candidates:
+                messages.append(candidate.content)
+
+            # Check model’s reply parts
+            if not response.candidates:
+                print("No response candidates found.")
+                break
+
+            parts = response.candidates[0].content.parts
+            if not parts:
+                print("No content parts returned.")
+                break
+
+            done = False
+            for part in parts:
+                # Function call
                 if hasattr(part, "function_call") and part.function_call:
                     function_call_part = part.function_call
+
+                    if verbose_mode:
+                        print(f"- Calling function: {function_call_part.name}")
+
                     function_call_result = call_function(function_call_part, verbose=verbose_mode)
 
-                    if not function_call_result.parts or not hasattr(function_call_result.parts[0], "function_response"):
+                    if (
+                        not function_call_result.parts
+                        or not hasattr(function_call_result.parts[0], "function_response")
+                    ):
                         raise Exception("Function call did not return a valid response")
 
                     result_data = function_call_result.parts[0].function_response.response
-
-                    # Extract the actual text result
-                    if isinstance(result_data, dict):
-                        output = result_data.get("result", "")
-                    else:
-                        output = str(result_data)
-
-                    # Always print the result (for Boot.dev grader)
+                    output = result_data.get("result", "") if isinstance(result_data, dict) else str(result_data)
                     print(output)
 
-                elif hasattr(part, 'text') and part.text:
+                    # Feed result back into conversation
+                    messages.append(
+                        types.Content(
+                            role="user",
+                            parts=[types.Part(text=f"Tool result:\n{output}")]
+                        )
+                    )
+
+                # Final text response
+                elif hasattr(part, "text") and part.text:
                     if verbose_mode:
                         print("******** Reporting.... ***********")
                         print(f"User prompt: {prompt}")
@@ -109,12 +128,16 @@ def main():
                         print(f"Response tokens: {response.usage_metadata.candidates_token_count}\n")
                     else:
                         print(part.text)
-        
-        sys.exit(0)
-        
-    except Exception as e:
-        print(f"Exception occurred: {e}")
-        sys.exit(1)
+                    done = True
+                    break
+
+            if done:
+                print("Final response:")
+                break
+
+        except Exception as e:
+            print(f"Exception occurred: {e}")
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()
